@@ -1,13 +1,4 @@
-version: '3.8'
-
 services:
-  node-red:
-    image: nodered/node-red:3.1.8-debian
-    container_name: node-red
-    ports:
-      - 1880:1880
-    volumes:
-      - node-red-data:/data
   minio:
     image: quay.io/minio/minio:RELEASE.2024-04-06T05-26-02Z.fips
     container_name: minio
@@ -17,9 +8,28 @@ services:
     env_file:
       - .env
     volumes:
-      - minio-data:/data
+      - minio_data:/data
+    networks:
+      - app
     command: server /data --console-address ":9001"
+
+  rabbitmq:
+    image: rabbitmq:3.12.14-management-alpine
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    env_file:
+      - .env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app
+  
     
 volumes:
-  node-red-data:
-  minio-data:
+  minio_data:
+  rabbitmq_data:
+networks:
+  app:
+    driver: bridge
