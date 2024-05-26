@@ -8,6 +8,7 @@ from minio import Minio
 from minio.error import S3Error
 from minio.commonconfig import CopySource
 import tempfile
+import pika
 
 app = FastAPI()
 
@@ -28,7 +29,14 @@ def initialize_minio_client():
         secure=False
     )
 
-def process_uploaded_file(minio_client, bucket_name, object_name):
+def initialize_rabbitmq_connection():
+    """Initialize and return a RabbitMQ connection."""
+    credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_DEFAULT_USER'), os.environ.get('RABBITMQ_DEFAULT_PASS'))
+    parameters = pika.ConnectionParameters(os.environ.get('RABBITMQ_HOST'), os.environ.get('RABBITMQ_PORT'), '/', credentials)
+    connection = pika.BlockingConnection(parameters)
+    return connection
+
+def process_uploaded_file(minio_client, rabbitmq_channel, bucket_name, object_name):
     """Process the uploaded file."""
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         local_path = temp_file.name
@@ -38,8 +46,15 @@ def process_uploaded_file(minio_client, bucket_name, object_name):
                 if raster_info:
                     # Upload metadata
                     upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
+                    # Send message to RabbitMQ
+                    send_message_to_rabbitmq(rabbitmq_channel, json.dumps(raster_info))
         finally:
             os.remove(local_path)
+
+def send_message_to_rabbitmq(channel, message):
+    """Send a message to RabbitMQ."""
+    channel.basic_publish(exchange='', routing_key=os.environ.get('RABBITMQ_QUEUE'), body=message)
+    print(" [x] Sent message to RabbitMQ")
 
 @app.post('/webhook/minio')
 async def minio_webhook(request: Request):
@@ -50,7 +65,10 @@ async def minio_webhook(request: Request):
         bucket_name = data['Records'][0]['s3']['bucket']['name']
         object_name = data['Records'][0]['s3']['object']['key']
         minio_client = initialize_minio_client()
-        process_uploaded_file(minio_client, bucket_name, object_name)
+        rabbitmq_connection = initialize_rabbitmq_connection()
+        rabbitmq_channel = rabbitmq_connection.channel()
+        process_uploaded_file(minio_client, rabbitmq_channel, bucket_name, object_name)
+        rabbitmq_connection.close()
     return 'OK'
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
