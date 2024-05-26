@@ -7,33 +7,36 @@ from minio import Minio
 from minio.error import S3Error
 import tempfile
 
-dotenv_path = join(dirname(__file__), '../.env')
-load_dotenv(dotenv_path)
+def load_env():
+    """Load environment variables from a .env file."""
+    dotenv_path = join(dirname(__file__), '../.env')
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+    else:
+        raise FileNotFoundError(f".env file not found at {dotenv_path}")
 
-# MinIO configuration
-minio_client = Minio(
-    os.environ.get('MINIO_HOST'),  # MinIO server URL
-    access_key=os.environ.get('MINIO_BUCKET_ACCESS_KEY'),
-    secret_key=os.environ.get('MINIO_BUCKET_SECRET_KEY'),
-    secure=False
-)
-
-bucket_name = os.environ.get('MINIO_BUCKET_NAME')
-object_name = "SEN_soc.tif"
+def initialize_minio_client():
+    """Initialize and return a Minio client."""
+    return Minio(
+        os.environ.get('MINIO_HOST'),  # MinIO server URL
+        access_key=os.environ.get('MINIO_BUCKET_ACCESS_KEY'),
+        secret_key=os.environ.get('MINIO_BUCKET_SECRET_KEY'),
+        secure=False
+    )
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
+    """Download a file from MinIO."""
     try:
         minio_client.fget_object(bucket_name, object_name, local_path)
         print(f"File downloaded successfully: {local_path}")
+        return True
     except S3Error as err:
         print(f"Failed to download file: {err}")
         return False
-    return True
 
 def get_raster_stats(raster_path):
-    # Open the raster file
+    """Retrieve and return statistics of a raster file."""
     dataset = gdal.Open(raster_path)
-
     if not dataset:
         print(f"Failed to open file: {raster_path}")
         return None
@@ -83,20 +86,27 @@ def get_raster_stats(raster_path):
 
     raster_info["bands"] = bands
 
-    # Close the dataset
     dataset = None
-
     return raster_info
 
-# Download the file to a temporary location
-with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-    local_path = temp_file.name
+def main():
+    
+    load_env()
+    
+    minio_client = initialize_minio_client()
+    bucket_name = os.environ.get('MINIO_BUCKET_NAME')
+    object_name = "SEN_soc.tif"
 
-if download_file_from_minio(minio_client, bucket_name, object_name, local_path):
-    # Get raster stats
-    raster_info = get_raster_stats(local_path)
-    if raster_info:
-        print(json.dumps(raster_info, indent=4))
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        local_path = temp_file.name
 
-# Clean up the temporary file
-os.remove(local_path)
+    try:
+        if download_file_from_minio(minio_client, bucket_name, object_name, local_path):
+            raster_info = get_raster_stats(local_path)
+            if raster_info:
+                print(json.dumps(raster_info, indent=4))
+    finally:
+        os.remove(local_path)
+
+if __name__ == "__main__":
+    main()
