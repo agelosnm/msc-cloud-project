@@ -5,6 +5,7 @@ from osgeo import gdal
 import json
 from minio import Minio
 from minio.error import S3Error
+from minio.commonconfig import CopySource
 import tempfile
 
 def load_env():
@@ -34,6 +35,28 @@ def download_file_from_minio(minio_client, bucket_name, object_name, local_path)
         print(f"Failed to download file: {err}")
         return False
 
+def upload_metadata_to_minio(minio_client, bucket_name, object_name, metadata):
+    """Upload metadata to an object in MinIO."""
+    try:
+        # Create the CopySource object
+        copy_source = CopySource(bucket_name, object_name)
+        
+        # Prepare metadata for upload, prefixing with 'x-amz-meta-'
+        metadata = {"x-amz-meta-" + key: json.dumps(value) if isinstance(value, dict) else str(value)
+                    for key, value in metadata.items()}
+        
+        # Use the copy_object method to update metadata
+        minio_client.copy_object(
+            bucket_name,
+            object_name,
+            copy_source,
+            metadata=metadata,
+            metadata_directive="REPLACE"
+        )
+        print(f"Metadata uploaded successfully for {object_name}")
+    except S3Error as err:
+        print(f"Failed to upload metadata: {err}")
+
 def get_raster_stats(raster_path):
     """Retrieve and return statistics of a raster file."""
     dataset = gdal.Open(raster_path)
@@ -42,7 +65,6 @@ def get_raster_stats(raster_path):
         return None
 
     raster_info = {
-        "raster_file": raster_path,
         "driver": {
             "short_name": dataset.GetDriver().ShortName,
             "long_name": dataset.GetDriver().LongName
@@ -90,7 +112,6 @@ def get_raster_stats(raster_path):
     return raster_info
 
 def main():
-    
     load_env()
     
     minio_client = initialize_minio_client()
@@ -104,7 +125,8 @@ def main():
         if download_file_from_minio(minio_client, bucket_name, object_name, local_path):
             raster_info = get_raster_stats(local_path)
             if raster_info:
-                print(json.dumps(raster_info, indent=4))
+                # Upload metadata
+                upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
     finally:
         os.remove(local_path)
 
