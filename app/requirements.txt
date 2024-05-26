@@ -1,2 +1,4 @@
 gdal==3.8.4
 numpy==1.26.4
+minio==7.2.7
+python-dotenv==1.0.1
