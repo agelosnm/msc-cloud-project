@@ -1,12 +1,15 @@
 import os
 from os.path import join, dirname
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request
 from osgeo import gdal
 import json
 from minio import Minio
 from minio.error import S3Error
 from minio.commonconfig import CopySource
 import tempfile
+
+app = FastAPI()
 
 def load_env():
     """Load environment variables from a .env file."""
@@ -24,6 +27,31 @@ def initialize_minio_client():
         secret_key=os.environ.get('MINIO_BUCKET_SECRET_KEY'),
         secure=False
     )
+
+def process_uploaded_file(minio_client, bucket_name, object_name):
+    """Process the uploaded file."""
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        local_path = temp_file.name
+        try:
+            if download_file_from_minio(minio_client, bucket_name, object_name, local_path):
+                raster_info = get_raster_stats(local_path)
+                if raster_info:
+                    # Upload metadata
+                    upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
+        finally:
+            os.remove(local_path)
+
+@app.post('/webhook/minio')
+async def minio_webhook(request: Request):
+    """Endpoint to receive MinIO event notifications."""
+    data = await request.json()
+    event = data.get('EventName')
+    if event == 's3:ObjectCreated:Put':
+        bucket_name = data['Records'][0]['s3']['bucket']['name']
+        object_name = data['Records'][0]['s3']['object']['key']
+        minio_client = initialize_minio_client()
+        process_uploaded_file(minio_client, bucket_name, object_name)
+    return 'OK'
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
     """Download a file from MinIO."""
@@ -111,24 +139,7 @@ def get_raster_stats(raster_path):
     dataset = None
     return raster_info
 
-def main():
-    load_env()
-    
-    minio_client = initialize_minio_client()
-    bucket_name = os.environ.get('MINIO_BUCKET_NAME')
-    object_name = "SEN_soc.tif"
-
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        local_path = temp_file.name
-
-    try:
-        if download_file_from_minio(minio_client, bucket_name, object_name, local_path):
-            raster_info = get_raster_stats(local_path)
-            if raster_info:
-                # Upload metadata
-                upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
-    finally:
-        os.remove(local_path)
-
 if __name__ == "__main__":
-    main()
+    load_env()
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=5000)
