@@ -287,18 +287,105 @@ sudo mv wsk /usr/local/bin/
 
 ### Standalone OpenWhisk
 
-```
-# Install Java & Node.js
-sudo apt install openjdk-8-jdk nodejs npm -y
 
+#### Install Java & Node.js
+```
+sudo apt install openjdk-8-jdk nodejs npm -y
+```
+
+#### Clone repo
+```
 git clone https://github.com/apache/openwhisk.git 
 cd openwhisk 
+```
 
-# Create .jar
+### Create .jar
+```
 ./gradlew :core:standalone:build
+```
 
-# Execute .jar
+### Execute .jar
+```
 sudo java -Dwhisk.standalone.host.name=0.0.0.0 -Dwhisk.standalone.host.internal=127.0.0.1 -Dwhisk.standalone.host.external=0.0.0.0 -jar ./bin/openwhisk-standalone.jar --couchdb --kafka --api-gw --kafka-ui
 ```
 
 Then test if the API is working at `http://localhost:3233/`
+
+### Authenticate
+```
+wsk property set \
+  --apihost 'http://localhost:3233' \
+  --auth '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
+```
+
+### Create action
+
+#### Example JavaScript function
+
+```js
+function main(params) {
+    console.log('Hello World');
+    return {msg:'Hello '+params.name};
+   }
+```
+
+#### Create action
+```
+wsk -i action create helloLab ../helloLab.js
+```
+
+#### Invoke action
+```
+wsk -i action invoke helloLab -b -p name "milko_cup"
+```
+Response:
+```
+ok: invoked /_/helloLab with id a0d8921b48c64a3a98921b48c65a3a8b
+{
+    "activationId": "a0d8921b48c64a3a98921b48c65a3a8b",
+    "annotations": [
+        {
+            "key": "path",
+            "value": "guest/helloLab"
+        },
+        {
+            "key": "waitTime",
+            "value": 220
+        },
+        {
+            "key": "kind",
+            "value": "nodejs:20"
+        },
+        {
+            "key": "timeout",
+            "value": false
+        },
+        {
+            "key": "limits",
+            "value": {
+                "concurrency": 1,
+                "logs": 10,
+                "memory": 256,
+                "timeout": 60000
+            }
+        }
+    ],
+    "duration": 9,
+    "end": 1717429497156,
+    "logs": [],
+    "name": "helloLab",
+    "namespace": "guest",
+    "publish": false,
+    "response": {
+        "result": {
+            "msg": "Hello milko_cup"
+        },
+        "size": 25,
+        "status": "success",
+        "success": true
+    },
+    "start": 1717429497147,
+    "subject": "guest",
+    "version": "0.0.1"
+}
+```
