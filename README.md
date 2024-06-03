@@ -274,3 +274,31 @@ Example payload:
 ```
 
 This message then can be consumed from a consuming service for further process
+
+## OpenWhisk
+
+### `wsk` CLI
+
+```
+wget https://github.com/apache/openwhisk-cli/releases/download/1.2.0/OpenWhisk_CLI-1.2.0-linux-386.tgz
+tar -xvzf OpenWhisk_CLI-1.2.0-linux-386.tgz 
+sudo mv wsk /usr/local/bin/
+```
+
+### Standalone OpenWhisk
+
+```
+# Install Java & Node.js
+sudo apt install openjdk-8-jdk nodejs npm -y
+
+git clone https://github.com/apache/openwhisk.git 
+cd openwhisk 
+
+# Create .jar
+./gradlew :core:standalone:build
+
+# Execute .jar
+sudo java -Dwhisk.standalone.host.name=0.0.0.0 -Dwhisk.standalone.host.internal=127.0.0.1 -Dwhisk.standalone.host.external=0.0.0.0 -jar ./bin/openwhisk-standalone.jar --couchdb --kafka --api-gw --kafka-ui
+```
+
+Then test if the API is working at `http://localhost:3233/`
