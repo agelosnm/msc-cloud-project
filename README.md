@@ -97,176 +97,6 @@ Example payload:
         "mean": 80.27062848522355,
         "std_dev": 52.25721996014859
       }
-    },
-    {
-      "band_number": 4,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 80.13699792570338,
-        "std_dev": 52.24806647980567
-      }
-    },
-    {
-      "band_number": 5,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 80.07868861291469,
-        "std_dev": 52.25327925110363
-      }
-    },
-    {
-      "band_number": 6,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 80.03217855122412,
-        "std_dev": 52.239215065976424
-      }
-    },
-    {
-      "band_number": 7,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.99271301958629,
-        "std_dev": 52.224527213392996
-      }
-    },
-    {
-      "band_number": 8,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.94908542334551,
-        "std_dev": 52.23111296631091
-      }
-    },
-    {
-      "band_number": 9,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.92175587942207,
-        "std_dev": 52.228715760895376
-      }
-    },
-    {
-      "band_number": 10,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.8347700762371,
-        "std_dev": 52.244195047098216
-      }
-    },
-    {
-      "band_number": 11,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.81122545189908,
-        "std_dev": 52.25187218334891
-      }
-    },
-    {
-      "band_number": 12,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.81090218474823,
-        "std_dev": 52.262189427299724
-      }
-    },
-    {
-      "band_number": 13,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.8261226798856,
-        "std_dev": 52.28217815423128
-      }
-    },
-    {
-      "band_number": 14,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.79977640688506,
-        "std_dev": 52.27764163927496
-      }
-    },
-    {
-      "band_number": 15,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.80799278036652,
-        "std_dev": 52.281807618873614
-      }
-    },
-    {
-      "band_number": 16,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.78735756041131,
-        "std_dev": 52.27018043588641
-      }
-    },
-    {
-      "band_number": 17,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.79169472805104,
-        "std_dev": 52.283879405363116
-      }
-    },
-    {
-      "band_number": 18,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.6835618652519,
-        "std_dev": 52.18609900827516
-      }
-    },
-    {
-      "band_number": 19,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.5459174052433,
-        "std_dev": 52.082730983765394
-      }
-    },
-    {
-      "band_number": 20,
-      "data_type": "Int16",
-      "statistics": {
-        "min": 10.0,
-        "max": 210.0,
-        "mean": 79.54985048894211,
-        "std_dev": 52.09747031408071
-      }
     }
   ]
 }
@@ -299,19 +129,19 @@ git clone https://github.com/apache/openwhisk.git
 cd openwhisk 
 ```
 
-### Create .jar
+#### Create .jar
 ```
 ./gradlew :core:standalone:build
 ```
 
-### Execute .jar
+#### Execute .jar
 ```
 sudo java -Dwhisk.standalone.host.name=0.0.0.0 -Dwhisk.standalone.host.internal=127.0.0.1 -Dwhisk.standalone.host.external=0.0.0.0 -jar ./bin/openwhisk-standalone.jar --couchdb --kafka --api-gw --kafka-ui
 ```
 
 Then test if the API is working at `http://localhost:3233/`
 
-### Authenticate
+### Authentication
 ```
 wsk property set \
   --apihost 'http://localhost:3233' \
