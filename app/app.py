@@ -9,12 +9,14 @@ from minio.error import S3Error
 from minio.commonconfig import CopySource
 import tempfile
 import pika
+import uvicorn
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
 def load_env():
     """Load environment variables from a .env file."""
-    dotenv_path = join(dirname(__file__), '../.env')
+    dotenv_path = join(dirname(__file__), '.env')
     if os.path.exists(dotenv_path):
         load_dotenv(dotenv_path)
     else:
@@ -69,7 +71,7 @@ async def minio_webhook(request: Request):
         rabbitmq_channel = rabbitmq_connection.channel()
         process_uploaded_file(minio_client, rabbitmq_channel, bucket_name, object_name)
         rabbitmq_connection.close()
-    return 'OK'
+    return JSONResponse(content={"status": "OK"})
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
     """Download a file from MinIO."""
@@ -159,5 +161,4 @@ def get_raster_stats(raster_path):
 
 if __name__ == "__main__":
     load_env()
-    import uvicorn
     uvicorn.run(app, host='0.0.0.0', port=5000)
