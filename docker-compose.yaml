@@ -4,7 +4,7 @@ services:
     image: quay.io/minio/minio:RELEASE.2024-04-06T05-26-02Z.fips
     container_name: minio
     ports:
-      - 9000:9000
+      - 9100:9000
       - 9001:9001
     env_file:
       - .env
