@@ -1,12 +1,20 @@
-## Create a new Python environment for the application
+## Create Python virtual environments for each component
 
 ```bash
-python3 -m venv geostats
-source geostats/bin/activate
+cd metadata-extractor 
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Components provision
+```bash
+cd invoker 
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## .env files adjustment
 ```bash
 cp .env.example .env
 ```
@@ -218,4 +226,16 @@ ok: invoked /_/helloLab with id a0d8921b48c64a3a98921b48c65a3a8b
     "subject": "guest",
     "version": "0.0.1"
 }
+```
+
+```
+wsk namespace list -v (get auth for API)
+
+wsk action delete metadata-extractor
+
+wsk -i action create metadata-extractor geostats/metadata-extractor/app.py --kind python:3.10
+
+wsk activation list
+
+wsk activation get 3da527d22bbc4868a527d22bbc686872
 ```
