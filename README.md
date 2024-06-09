@@ -226,6 +226,8 @@ wsk action delete metadata-extractor
 
 wsk -i action create metadata-extractor geostats/metadata-extractor/app.py --kind python:3.10
 
+wsk -i action create metadata-extractor --docker angelosnm/geostats-metadata-extractor:latest # docker
+
 wsk activation list
 
 wsk activation get 3da527d22bbc4868a527d22bbc686872

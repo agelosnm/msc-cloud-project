@@ -11,6 +11,7 @@ pip install -r requirements.txt
 
 ### Create Docker environments (dev images)
 
-`docker build . -f Dockerfile.dev -t "angelosnm/geostats-metadata-extractor:dev"`
-
-`docker run -d -p5000:8080 -v ./:/app angelosnm/geostats-metadata-extractor:dev`
+```bash
+docker build . -f Dockerfile.dev -t "angelosnm/geostats-metadata-extractor:dev"`
+docker run -d -p5000:8080 -v ./:/app angelosnm/geostats-metadata-extractor:dev
+```
