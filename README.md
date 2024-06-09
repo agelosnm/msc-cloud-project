@@ -1,12 +1,3 @@
-## Create Python virtual environments for each component
-
-```bash
-cd metadata-extractor 
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
 ```bash
 cd invoker 
 python3 -m venv venv

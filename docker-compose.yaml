@@ -3,6 +3,7 @@ services:
   minio:
     image: quay.io/minio/minio:RELEASE.2024-04-06T05-26-02Z.fips
     container_name: minio
+    restart: unless-stopped
     ports:
       - 9100:9000
       - 9001:9001
@@ -19,6 +20,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.12.14-management-alpine
     container_name: rabbitmq
+    restart: unless-stopped
     ports:
       - 5672:5672
       - 15672:15672

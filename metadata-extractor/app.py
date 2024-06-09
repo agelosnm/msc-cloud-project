@@ -22,7 +22,7 @@ def initialize_minio_client():
 def initialize_rabbitmq_connection():
     """Initialize and return a RabbitMQ connection."""
     credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_DEFAULT_USER'), os.environ.get('RABBITMQ_DEFAULT_PASS'))
-    parameters = pika.ConnectionParameters(os.environ.get('RABBITMQ_HOST'), os.environ.get('RABBITMQ_PORT'), '/', credentials)
+    parameters = pika.ConnectionParameters(os.environ.get('RABBITMQ_HOST'), '/', credentials)
     connection = pika.BlockingConnection(parameters)
     return connection
 
