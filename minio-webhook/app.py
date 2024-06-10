@@ -34,12 +34,12 @@ def send_message_to_rabbitmq(event_payload, connection, queue_name):
 async def minio_webhook(request: Request):
     """Endpoint to receive MinIO event notifications."""
     data = await request.json()
-    print("Received MinIO event:", data)
-    # Initialize RabbitMQ connection
     connection = initialize_rabbitmq_connection()
+
     # Send event payload to RabbitMQ
-    send_message_to_rabbitmq(data, connection, os.environ.get('RABBITMQ_QUEUE'))
-    return {"status": "success", "message": "Event sent to RabbitMQ"}
+    if data['EventName'] == 's3:ObjectCreated:Put':      
+        send_message_to_rabbitmq(data, connection, os.environ.get('RABBITMQ_QUEUE_UPLOADER'))
+        return {"status": "success", "message": "Upload event sent to RabbitMQ"}
 
 if __name__ == "__main__":
     import uvicorn
