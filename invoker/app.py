@@ -1,7 +1,7 @@
 import os
 import json
 from fastapi import FastAPI, Request
-import requests
+import pika
 from dotenv import load_dotenv
 
 app = FastAPI()
@@ -9,38 +9,37 @@ app = FastAPI()
 # Load environment variables
 load_dotenv()
 
-# OpenWhisk configuration
-API_HOST = os.getenv('OPENWHISK_API_HOST')
-NAMESPACE = os.getenv('OPENWHISK_NAMESPACE')
-ACTION_NAME = os.getenv('OPENWHISK_ACTION_NAME')
-AUTH_KEY = os.getenv('OPENWHISK_AUTH_KEY')
+def initialize_rabbitmq_connection():
+    """Initialize and return a RabbitMQ connection."""
+    credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_DEFAULT_USER'), os.environ.get('RABBITMQ_DEFAULT_PASS'))
+    rabbitmq_host = os.environ.get('RABBITMQ_HOST')
+    rabbitmq_port = os.environ.get('RABBITMQ_PORT')
+    parameters = pika.ConnectionParameters(host=rabbitmq_host, port=rabbitmq_port, credentials=credentials)
+    connection = pika.BlockingConnection(parameters)
+    return connection
 
-def invoke_openwhisk_action(event_payload):
-    """Invoke OpenWhisk action with the given event payload."""
-    url = f'{API_HOST}/api/v1/namespaces/{NAMESPACE}/actions/{ACTION_NAME}?blocking=true&result=true'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Basic {AUTH_KEY}'
-    }
-    response = requests.post(url, headers=headers, data=json.dumps({'event': event_payload}))
-    
-    if response.status_code == 200:
-        print('Action invoked successfully')
-        return response.json()
-    else:
-        print('Failed to invoke action')
-        print('Status code:', response.status_code)
-        print('Response:', response.text)
-        return None
+def send_message_to_rabbitmq(event_payload, connection, queue_name):
+    """Send event payload message to RabbitMQ."""
+    try:
+        channel = connection.channel()
+        channel.queue_declare(queue=queue_name, durable=True)
+        message = json.dumps(event_payload)
+        channel.basic_publish(exchange='', routing_key=queue_name, body=message)
+        print(f"Message sent to RabbitMQ: {message}")
+        connection.close()
+    except Exception as e:
+        print(f"Failed to send message to RabbitMQ: {e}")
 
 @app.post('/webhook/minio')
 async def minio_webhook(request: Request):
     """Endpoint to receive MinIO event notifications."""
     data = await request.json()
     print("Received MinIO event:", data)
-    # Invoke OpenWhisk action with the event payload
-    result = invoke_openwhisk_action(data)
-    return result
+    # Initialize RabbitMQ connection
+    connection = initialize_rabbitmq_connection()
+    # Send event payload to RabbitMQ
+    send_message_to_rabbitmq(data, connection, os.environ.get('RABBITMQ_QUEUE'))
+    return {"status": "success", "message": "Event sent to RabbitMQ"}
 
 if __name__ == "__main__":
     import uvicorn
