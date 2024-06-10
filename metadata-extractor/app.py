@@ -111,7 +111,7 @@ async def init():
 async def run(request: Request):
     try:
         event = await request.json()
-        event_payload = event.get("event", {})
+        event_payload = event.get("value", {}).get("event", {})
         
         print(f"Received event payload: {event_payload}")
         
