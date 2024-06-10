@@ -1,12 +1,15 @@
 import os
 import json
-import pika
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from minio import Minio
 from minio.error import S3Error
 from minio.commonconfig import CopySource
 from osgeo import gdal
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI()
 
@@ -16,7 +19,7 @@ def initialize_minio_client():
         os.environ.get('MINIO_HOST'),
         access_key=os.environ.get('MINIO_BUCKET_ACCESS_KEY'),
         secret_key=os.environ.get('MINIO_BUCKET_SECRET_KEY'),
-        secure=False
+        secure=True
     )
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
