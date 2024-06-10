@@ -1,10 +1,36 @@
 import os
 import pika
 import json
+import threading
+import requests
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# OpenWhisk configuration
+OPENWHISK_API_HOST = os.getenv('OPENWHISK_API_HOST')
+OPENWHISK_NAMESPACE = os.getenv('OPENWHISK_NAMESPACE')
+OPENWHISK_ACTION_NAME = os.getenv('OPENWHISK_ACTION_NAME')
+OPENWHISK_AUTH_KEY = os.getenv('OPENWHISK_AUTH_KEY')
+
+def invoke_openwhisk_action(event_payload):
+    """Invoke OpenWhisk action with the given event payload."""
+    url = f'{OPENWHISK_API_HOST}/api/v1/namespaces/{OPENWHISK_NAMESPACE}/actions/{OPENWHISK_ACTION_NAME}?blocking=true&result=true'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Basic {OPENWHISK_AUTH_KEY}'
+    }
+    response = requests.post(url, headers=headers, data=json.dumps({'event': event_payload}))
+    
+    if response.status_code == 200:
+        print('Action invoked successfully')
+        return response.json()
+    else:
+        print('Failed to invoke action')
+        print('Status code:', response.status_code)
+        print('Response:', response.text)
+        return None
 
 def initialize_rabbitmq_connection():
     """Initialize and return a RabbitMQ connection."""
@@ -17,15 +43,16 @@ def initialize_rabbitmq_connection():
 
 def uploader_callback(ch, method, properties, body):
     message = json.loads(body)
-    print(message)
-    # Process the message specifically for Queue 1
+    print(f"Received message from Uploader Queue: {message}")
+    invoke_openwhisk_action(message)
+    # Process the message specifically for the uploader queue
     # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
+# Uncomment or add more callback functions for other queues as needed
 # def callback_for_queue2(ch, method, properties, body):
-#     print("Received message from Queue 2:")
 #     message = json.loads(body)
-#     print(message)
+#     print(f"Received message from Queue 2: {message}")
 #     # Process the message specifically for Queue 2
 #     # ...
 #     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -48,12 +75,20 @@ def consume_messages(queue_name, callback):
 
 # Define the queues and their corresponding callbacks
 queues_callbacks = {
-    "uploader": uploader_callback,
+    os.environ.get('RABBITMQ_QUEUE_UPLOADER'): uploader_callback,
     # os.environ.get('RABBITMQ_QUEUE2'): callback_for_queue2,
     # Add more queues and callbacks as needed
 }
 
-# Start consuming messages from all defined queues
+# Start consuming messages from all defined queues in separate threads
+threads = []
+
 for queue, callback in queues_callbacks.items():
     if queue:
-        consume_messages(queue, callback)
+        thread = threading.Thread(target=consume_messages, args=(queue, callback))
+        thread.start()
+        threads.append(thread)
+
+# Join threads to ensure all consumers run continuously
+for thread in threads:
+    thread.join()
