@@ -4,9 +4,13 @@ import json
 import threading
 import requests
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
+
+# OpenAI configuration
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # OpenWhisk configuration
 OPENWHISK_API_HOST = os.getenv('OPENWHISK_API_HOST')
@@ -52,6 +56,31 @@ def uploader_callback(ch, method, properties, body):
 def raw_data_callback(ch, method, properties, body):
     message = json.loads(body)
     print(f"Received message from Queue 2: {message}")
+    # API endpoint
+    url = "https://api.openai.com/v1/chat/completions"
+
+    # Request headers
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
+    }
+
+    # Request payload
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": "can you describe this?" + str(message)}],
+        "temperature": 0.7
+    }
+
+    # Convert payload to JSON
+    json_payload = json.dumps(payload)
+
+    # Send POST request
+    response = requests.post(url, headers=headers, data=json_payload)
+
+    # Print response
+    print(response.json()["choices"][0]["message"]["content"])
+
     # Process the message specifically for Queue 2
     # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
