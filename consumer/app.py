@@ -49,13 +49,12 @@ def uploader_callback(ch, method, properties, body):
     # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-# Uncomment or add more callback functions for other queues as needed
-# def callback_for_queue2(ch, method, properties, body):
-#     message = json.loads(body)
-#     print(f"Received message from Queue 2: {message}")
-#     # Process the message specifically for Queue 2
-#     # ...
-#     ch.basic_ack(delivery_tag=method.delivery_tag)
+def raw_data_callback(ch, method, properties, body):
+    message = json.loads(body)
+    print(f"Received message from Queue 2: {message}")
+    # Process the message specifically for Queue 2
+    # ...
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def consume_messages(queue_name, callback):
     """Consume messages from the specified RabbitMQ queue."""
@@ -76,7 +75,7 @@ def consume_messages(queue_name, callback):
 # Define the queues and their corresponding callbacks
 queues_callbacks = {
     os.environ.get('RABBITMQ_QUEUE_UPLOADER'): uploader_callback,
-    # os.environ.get('RABBITMQ_QUEUE2'): callback_for_queue2,
+    os.environ.get('RABBITMQ_QUEUE_RAW_DATA'): raw_data_callback,
     # Add more queues and callbacks as needed
 }
 

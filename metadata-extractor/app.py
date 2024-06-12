@@ -186,7 +186,7 @@ async def run(request: Request):
                 # Upload metadata to MinIO and write raster_info to RabbitMQ
                 upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
                 connection = initialize_rabbitmq_connection()
-                send_message_to_rabbitmq(raster_info, connection, os.environ.get('RABBITMQ_QUEUE_DATA'))
+                send_message_to_rabbitmq(raster_info, connection, os.environ.get('RABBITMQ_QUEUE'))
                 
                 return JSONResponse(content={"status": "success", "raster_info": raster_info})
             else:

@@ -38,7 +38,7 @@ async def minio_webhook(request: Request):
 
     # Send event payload to RabbitMQ
     if data['EventName'] == 's3:ObjectCreated:Put':      
-        send_message_to_rabbitmq(data, connection, os.environ.get('RABBITMQ_QUEUE_UPLOADER'))
+        send_message_to_rabbitmq(data, connection, os.environ.get('RABBITMQ_QUEUE'))
         return {"status": "success", "message": "Upload event sent to RabbitMQ"}
 
 if __name__ == "__main__":
