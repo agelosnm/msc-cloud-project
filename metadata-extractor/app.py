@@ -7,11 +7,21 @@ from minio.error import S3Error
 from minio.commonconfig import CopySource
 from osgeo import gdal
 from dotenv import load_dotenv
+import pika
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
+
+def initialize_rabbitmq_connection():
+    """Initialize and return a RabbitMQ connection."""
+    credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_DEFAULT_USER'), os.environ.get('RABBITMQ_DEFAULT_PASS'))
+    rabbitmq_host = os.environ.get('RABBITMQ_HOST')
+    rabbitmq_port = os.environ.get('RABBITMQ_PORT')
+    parameters = pika.ConnectionParameters(host=rabbitmq_host, port=rabbitmq_port, credentials=credentials)
+    connection = pika.BlockingConnection(parameters)
+    return connection
 
 def initialize_minio_client():
     """Initialize and return a Minio client."""
@@ -21,6 +31,18 @@ def initialize_minio_client():
         secret_key=os.environ.get('MINIO_BUCKET_SECRET_KEY'),
         secure=True
     )
+
+def send_message_to_rabbitmq(event_payload, connection, queue_name):
+    """Send event payload message to RabbitMQ."""
+    try:
+        channel = connection.channel()
+        channel.queue_declare(queue=queue_name, durable=True)
+        message = json.dumps(event_payload)
+        channel.basic_publish(exchange='', routing_key=queue_name, body=message)
+        print(f"Message sent to RabbitMQ: {message}")
+        connection.close()
+    except Exception as e:
+        print(f"Failed to send message to RabbitMQ: {e}")
 
 def download_file_from_minio(minio_client, bucket_name, object_name, local_path):
     """Download a file from MinIO."""
@@ -161,8 +183,10 @@ async def run(request: Request):
             # Get raster stats
             raster_info = get_raster_stats(local_path)
             if raster_info:
-                # Upload metadata to MinIO
+                # Upload metadata to MinIO and write raster_info to RabbitMQ
                 upload_metadata_to_minio(minio_client, bucket_name, object_name, raster_info)
+                connection = initialize_rabbitmq_connection()
+                send_message_to_rabbitmq(raster_info, connection, os.environ.get('RABBITMQ_QUEUE_DATA'))
                 
                 return JSONResponse(content={"status": "success", "raster_info": raster_info})
             else:
