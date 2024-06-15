@@ -30,6 +30,30 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - app
+  
+  consumer:
+    build:
+      context: ./consumer
+    container_name: consumer
+    env_file:
+      - ./consumer/.env
+    volumes:
+      - ./consumer:/app
+    networks:
+      - app
+  
+  minio-webhook:
+    build:
+      context: ./minio-webhook
+    container_name: minio-webhook
+    env_file:
+      - ./minio-webhook/.env
+    ports:
+      - 5001:5001
+    volumes:
+      - ./minio-webhook:/app  
+    networks:
+      - app
 
 volumes:
   minio_data:

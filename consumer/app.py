@@ -47,7 +47,7 @@ def initialize_rabbitmq_connection():
 
 def uploader_callback(ch, method, properties, body):
     message = json.loads(body)
-    print(f"Received message from Uploader Queue: {message}")
+    print(f"Received message from {os.environ.get('RABBITMQ_QUEUE_UPLOADER')} queue: {message}")
     invoke_openwhisk_action(message)
     # Process the message specifically for the uploader queue
     # ...
@@ -55,7 +55,7 @@ def uploader_callback(ch, method, properties, body):
 
 def raw_data_callback(ch, method, properties, body):
     message = json.loads(body)
-    print(f"Received message from Queue 2: {message}")
+    print(f"Received message from {os.environ.get('RABBITMQ_QUEUE_RAW_DATA')} queue: {message}")
     # API endpoint
     url = "https://api.openai.com/v1/chat/completions"
 
@@ -68,7 +68,7 @@ def raw_data_callback(ch, method, properties, body):
     # Request payload
     payload = {
         "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": "can you describe this?" + str(message)}],
+        "messages": [{"role": "user", "content": "can you give me a description of the below raster data? what does this mean for this .tiff file?" + str(message)}],
         "temperature": 0.7
     }
 
