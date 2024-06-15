@@ -5,6 +5,9 @@ import threading
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Load environment variables
 load_dotenv()
@@ -78,11 +81,36 @@ def raw_data_callback(ch, method, properties, body):
     # Send POST request
     response = requests.post(url, headers=headers, data=json_payload)
 
-    # Print response
-    print(response.json()["choices"][0]["message"]["content"])
+    # Extract content from OpenAI response
+    try:
+        content = response.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError) as e:
+        print("Error extracting content from OpenAI response:", e)
+        content = "Failed to extract content from OpenAI response"
+
+    # Send email using SMTP (MailHog)
+    try:
+        smtp_server = os.getenv('SMTP_SERVER')
+        smtp_port = int(os.getenv('SMTP_PORT'))
+        sender_email = os.getenv('SMTP_FROM_EMAIL')
+        receiver_email = os.getenv('SMTP_TO_EMAIL')
+
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+        msg['Subject'] = "Georeport"
+
+        body = content  # Content from OpenAI response
+        msg.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.send_message(msg)
+
+        print("Email sent successfully")
+    except Exception as e:
+        print("Error sending email:", e)
 
     # Process the message specifically for Queue 2
-    # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def consume_messages(queue_name, callback):
