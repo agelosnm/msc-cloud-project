@@ -231,4 +231,5 @@ wsk -i action create metadata-extractor --docker angelosnm/geostats-metadata-ext
 wsk activation list
 
 wsk activation get 3da527d22bbc4868a527d22bbc686872
+
 ```
