@@ -21,14 +21,14 @@ OPENWHISK_NAMESPACE = os.getenv('OPENWHISK_NAMESPACE')
 OPENWHISK_ACTION_NAME = os.getenv('OPENWHISK_ACTION_NAME')
 OPENWHISK_AUTH_KEY = os.getenv('OPENWHISK_AUTH_KEY')
 
-def invoke_openwhisk_action(event_payload):
+def invoke_openwhisk_action(payload, openwhisk_action):
     """Invoke OpenWhisk action with the given event payload."""
-    url = f'{OPENWHISK_API_HOST}/api/v1/namespaces/{OPENWHISK_NAMESPACE}/actions/{OPENWHISK_ACTION_NAME}?blocking=true&result=true'
+    url = f'{OPENWHISK_API_HOST}/api/v1/namespaces/{OPENWHISK_NAMESPACE}/actions/{openwhisk_action}?blocking=true&result=true'
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Basic {OPENWHISK_AUTH_KEY}'
     }
-    response = requests.post(url, headers=headers, data=json.dumps({'event': event_payload}))
+    response = requests.post(url, headers=headers, data=json.dumps({'event': payload}))
     
     if response.status_code == 200:
         print('Action invoked successfully')
@@ -51,7 +51,7 @@ def initialize_rabbitmq_connection():
 def uploader_callback(ch, method, properties, body):
     message = json.loads(body)
     print(f"Received message from {os.environ.get('RABBITMQ_QUEUE_UPLOADER')} queue: {message}")
-    invoke_openwhisk_action(message)
+    invoke_openwhisk_action(message, 'metadata-extractor')
     # Process the message specifically for the uploader queue
     # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -59,59 +59,68 @@ def uploader_callback(ch, method, properties, body):
 def raw_data_callback(ch, method, properties, body):
     message = json.loads(body)
     print(f"Received message from {os.environ.get('RABBITMQ_QUEUE_RAW_DATA')} queue: {message}")
-    # API endpoint
-    url = "https://api.openai.com/v1/chat/completions"
-
-    # Request headers
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
-    }
-
-    # Request payload
-    payload = {
-        "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": "can you give me a description of the below raster data? what does this mean for this .tiff file?" + str(message)}],
-        "temperature": 0.7
-    }
-
-    # Convert payload to JSON
-    json_payload = json.dumps(payload)
-
-    # Send POST request
-    response = requests.post(url, headers=headers, data=json_payload)
-
-    # Extract content from OpenAI response
-    try:
-        content = response.json()["choices"][0]["message"]["content"]
-    except (KeyError, IndexError) as e:
-        print("Error extracting content from OpenAI response:", e)
-        content = "Failed to extract content from OpenAI response"
-
-    # Send email using SMTP (MailHog)
-    try:
-        smtp_server = os.getenv('SMTP_SERVER')
-        smtp_port = int(os.getenv('SMTP_PORT'))
-        sender_email = os.getenv('SMTP_FROM_EMAIL')
-        receiver_email = os.getenv('SMTP_TO_EMAIL')
-
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = receiver_email
-        msg['Subject'] = "Georeport"
-
-        body = content  # Content from OpenAI response
-        msg.attach(MIMEText(body, 'plain'))
-
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.send_message(msg)
-
-        print("Email sent successfully")
-    except Exception as e:
-        print("Error sending email:", e)
-
-    # Process the message specifically for Queue 2
+    invoke_openwhisk_action(message, 'report-generator')
+    # Process the message specifically for the uploader queue
+    # ...
     ch.basic_ack(delivery_tag=method.delivery_tag)
+
+
+# def raw_data_callback(ch, method, properties, body):
+#     message = json.loads(body)
+#     print(f"Received message from {os.environ.get('RABBITMQ_QUEUE_RAW_DATA')} queue: {message}")
+#     # API endpoint
+#     url = "https://api.openai.com/v1/chat/completions"
+
+#     # Request headers
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": f"Bearer {OPENAI_API_KEY}"
+#     }
+
+#     # Request payload
+#     payload = {
+#         "model": "gpt-3.5-turbo",
+#         "messages": [{"role": "user", "content": "can you give me a description of the below raster data? what does this mean for this .tiff file?" + str(message)}],
+#         "temperature": 0.7
+#     }
+
+#     # Convert payload to JSON
+#     json_payload = json.dumps(payload)
+
+#     # Send POST request
+#     response = requests.post(url, headers=headers, data=json_payload)
+
+#     # Extract content from OpenAI response
+#     try:
+#         content = response.json()["choices"][0]["message"]["content"]
+#     except (KeyError, IndexError) as e:
+#         print("Error extracting content from OpenAI response:", e)
+#         content = "Failed to extract content from OpenAI response"
+
+#     # Send email using SMTP (MailHog)
+#     try:
+#         smtp_server = os.getenv('SMTP_SERVER')
+#         smtp_port = int(os.getenv('SMTP_PORT'))
+#         sender_email = os.getenv('SMTP_FROM_EMAIL')
+#         receiver_email = os.getenv('SMTP_TO_EMAIL')
+
+#         msg = MIMEMultipart()
+#         msg['From'] = sender_email
+#         msg['To'] = receiver_email
+#         msg['Subject'] = "Georeport"
+
+#         body = content  # Content from OpenAI response
+#         msg.attach(MIMEText(body, 'plain'))
+
+#         with smtplib.SMTP(smtp_server, smtp_port) as server:
+#             server.send_message(msg)
+
+#         print("Email sent successfully")
+#     except Exception as e:
+#         print("Error sending email:", e)
+
+#     # Process the message specifically for Queue 2
+#     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def consume_messages(queue_name, callback):
     """Consume messages from the specified RabbitMQ queue."""

@@ -228,6 +228,10 @@ wsk -i action create metadata-extractor geostats/metadata-extractor/app.py --kin
 
 wsk -i action create metadata-extractor --docker angelosnm/geostats-metadata-extractor:latest # docker
 
+wsk -i action create report-generator --docker angelosnm/georeports-report-generator:0.0.1
+
+wsk action update metadata-extractor --docker angelosnm/geostats-metadata-extractor:0.2.1
+
 wsk activation list
 
 wsk activation get 3da527d22bbc4868a527d22bbc686872
