@@ -41,7 +41,7 @@ async def run(request: Request):
         # Request payload
         payload = {
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": "can you give me a description of the below raster data? what does this mean for this .tiff file?" + str(event)}],
+            "messages": [{"role": "user", "content": "can you give me a description of the below raster data? what does this mean for this .tiff file? Give me some examples on what kind of geospatial analysis such data could be used " + str(event)}],
             "temperature": 0.7
         }
 
